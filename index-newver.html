@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>監獄書信 選擇題練習</title>
+<style>
+*{box-sizing:border-box;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+body{max-width:620px;margin:30px auto;padding:0 16px;background:#f7f9fc;}
+.container{background:#fff;padding:24px;border-radius:14px;box-shadow:0 2px 10px #00000015;}
+.page-title{text-align:center;font-size:24px;font-weight:bold;margin:0 0 20px 0;color:#1e293b;}
+.q-index{color:#666;margin-bottom:8px;}
+.question{font-size:20px;margin-bottom:8px;line-height:1.6;}
+.tag-multi{display:inline-block;background:#ff9500;color:#fff;font-size:14px;padding:2px 8px;border-radius:6px;margin-bottom:14px;}
+.option{padding:14px 16px;border:1px solid #cbd5e1;border-radius:10px;margin:10px 0;cursor:pointer;font-size:17px;transition:0.2s;}
+.option:hover{background:#eef6ff;}
+.option.selected{background:#dbeafe;border-color:#3b82f6;}
+.option.disabled{pointer-events:none;opacity:0.85;}
+.option-right{background:#bbf7d0;border-color:#22c55e;}
+.option-wrong{background:#fecaca;border-color:#ef4444;}
+.result{margin-top:20px;font-size:19px;font-weight:bold;}
+.correct-text{color:#009933;}
+.wrong-text{color:#d62828;}
+.answer-box{margin-top:10px;font-size:17px;color:#333;}
+.explain-box{margin-top:10px;font-size:16px;color:#444;background:#f1f5f9;padding:12px;border-radius:8px;}
+.btn-row{margin-top:24px;display:flex;gap:12px;justify-content:flex-end;flex-wrap:wrap;}
+#submitBtn{padding:12px 20px;font-size:17px;border:none;background:#f97316;color:#fff;border-radius:10px;cursor:pointer;}
+#submitBtn:disabled{background:#fdba74;cursor:not-allowed;}
+#nextBtn{padding:12px 24px;font-size:17px;border:none;background:#2563eb;color:#fff;border-radius:10px;cursor:pointer;}
+#nextBtn:disabled{background:#94a3b8;cursor:not-allowed;}
+#quizPage{}
+#scorePage{display:none;text-align:center;}
+#scorePage h2{margin-top:0;}
+.score-item{font-size:18px;margin:12px 0;}
+#restartBtn{margin-top:20px;padding:12px 28px;font-size:17px;background:#16a34a;color:white;border:none;border-radius:10px;cursor:pointer;}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1 class="page-title">監獄書信</h1>
+  <div id="quizPage">
+    <div class="q-index" id="qIndex"></div>
+    <div class="question" id="qText"></div>
+    <div id="multiTag"></div>
+    <div id="optWrap"></div>
+    <div class="result" id="resText"></div>
+    <div class="answer-box" id="ansBox"></div>
+    <div class="explain-box" id="expBox"></div>
+    <div class="btn-row">
+      <button id="submitBtn" style="display:none;" disabled>提交答案</button>
+      <button id="nextBtn" disabled>下一题</button>
+    </div>
+  </div>
+  <div id="scorePage">
+    <h2>📋 測驗成績單</h2>
+    <div class="score-item" id="totalCount"></div>
+    <div class="score-item" id="rightCount"></div>
+    <div class="score-item" id="wrongCount"></div>
+    <div class="score-item" id="scoreText"></div>
+    <button id="restartBtn">重新開始</button>
+  </div>
+</div>
+<script>
+const qIndexEl = document.getElementById("qIndex");
+const qEl = document.getElementById("qText");
+const multiTagEl = document.getElementById("multiTag");
+const optEl = document.getElementById("optWrap");
+const resEl = document.getElementById("resText");
+const ansEl = document.getElementById("ansBox");
+const expEl = document.getElementById("expBox");
+const submitBtn = document.getElementById("submitBtn");
+const nextBtn = document.getElementById("nextBtn");
+const quizPage = document.getElementById("quizPage");
+const scorePage = document.getElementById("scorePage");
+const totalCountEl = document.getElementById("totalCount");
+const rightCountEl = document.getElementById("rightCount");
+const wrongCountEl = document.getElementById("wrongCount");
+const scoreTextEl = document.getElementById("scoreText");
+const restartBtn = document.getElementById("restartBtn");
+const PICK_COUNT = 20;
+// ============題庫編輯區============
+// 每題可加上 explain:"解釋文字"，不需要解釋就不寫 explain
+const questionBank = [
+ {question:"單選：以弗所書作者是誰？",options:["彼得","保羅","提犘太","約翰"],correct:"保羅",explain:"以弗所書是保羅的監獄書信之一，寫於羅馬監牢。"},
+ {question:"多選：哪些書卷不是監獄書信?",options:["以弗所書","雅各書","猶大書","加拉太書"],correct:["雅各書","猶大書","加拉太書"],isMultiple:true,explain:"保羅四卷監獄書信：以弗所書、腓立比書、歌羅西書、腓利門書。雅各、猶大並非保羅書信；加拉太書是保羅早期旅行書信。"},
+ {question:"多選：弗5:9, 光明所結的果子是甚麼?",options:["慷慨","良善","公義","誠實"],correct:["良善","公義","誠實"],isMultiple:true,explain:"參考以弗所書5:9，光明的果子就是一切良善、公義、誠實。"},
+ {question:"單選：腓立比書寫作日期",options:["約主後50-52年","約主後56-58年","約主後60-62年","約主後70-72年"],correct:"約主後60-62年",explain:"腓立比書是保羅在羅馬監獄時期，大約主後60‑62年寫成。"},
+ {question:"單選：一鑰語，在腓立比書四章中都出現過？",options:["復活","得勝","世俗中","在主裡"],correct:"在主裡",explain:"「在主裡」是腓立比書重要關鍵詞，多次出現，代表與基督聯合的生命。"},
+ {question:"單選：腓1:11, 保羅鼓勵信徒靠着耶穌基督結滿甚麼果子？",options:["公義","仁愛","仁義","信心"],correct:"仁義",explain:"腓立比書1:11，使你們結滿那仁義的果子，都是靠著耶穌基督。"},
+ {question:"多選：腓1:9, 保羅禱告, 使信徒的愛心在哪方面多而又多?",options:["知識","良善","信心","見識"],correct:["知識","見識"],isMultiple:true,explain:"腓1:9，願你們的愛心在知識和各樣見識上多而又多。"},
+ {question:"單選：腓1:29, 你們蒙恩，不但得以信服基督，而且要為他__ __。",options:["受苦","受死","受難","受罪"],correct:"受苦",explain:"腓立比書1:29，因為你們蒙恩，不但得以信服基督，並且要為祂受苦。"},
+ {question:"單選：腓2:5, 你們當以________的心為心。",options:["保羅","提犘太","基督耶穌","以巴弗提"],correct:"基督耶穌",explain:"腓2:5，你們當以基督耶穌的心為心，講基督謙卑降卑的榜樣。"},
+ {question:"多選：腓2:14-15, 你們無論做甚麼事，都不要_____、_____，好使你們無可指責，誠實無偽，在這彎曲悖謬的世代作神無瑕疵的兒女。",options:["論斷人","責罵人","發怨言","起爭論"],correct:["發怨言","起爭論"],isMultiple:true,explain:"腓2:14‑15，凡事不要發怨言、起爭論，作神無瑕疵的兒女。"},
+{question:"單選：保羅是甚麼人？",options:["撒都該人","非利士人","法利賽人"],correct:"法利賽人",explain:"保羅出身法利賽人，熟讀舊約律法。"}
+];
+// =================================
+let fullBank = [...questionBank];
+let quizList = [];
+let currentIdx = 0;
+let answered = false;
+let rightNum = 0;
+let wrongNum = 0;
+let selectedMulti = [];
+function getRandomQuestions(bank, pickNum){
+  if(!Array.isArray(bank) || bank.length === 0) return [];
+  const copy = [...bank];
+  for(let i=copy.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [copy[i],copy[j]] = [copy[j],copy[i]];
+  }
+  return copy.slice(0, pickNum);
+}
+function resetQuiz(){
+  quizList = getRandomQuestions(fullBank, PICK_COUNT);
+  if(quizList.length === 0){
+    alert("題庫為空，請檢查 questionBank");
+    return;
+  }
+  currentIdx = 0;
+  rightNum = 0;
+  wrongNum = 0;
+  answered = false;
+  quizPage.style.display="block";
+  scorePage.style.display="none";
+  renderQuestion();
+}
+function renderQuestion(){
+  answered = false;
+  selectedMulti = [];
+  resEl.textContent="";
+  ansEl.textContent="";
+  expEl.textContent="";
+  submitBtn.style.display="none";
+  nextBtn.disabled=true;
+  optEl.innerHTML="";
+  multiTagEl.innerHTML="";
+  const item = quizList[currentIdx];
+  qIndexEl.textContent = `題目 ${currentIdx+1} / ${quizList.length}`;
+  qEl.textContent = item.question;
+  if(item.isMultiple){
+    multiTagEl.innerHTML = `<span class="tag-multi">🔘 多選題（需全部選對）</span>`;
+    submitBtn.style.display="inline-block";
+    submitBtn.disabled=true;
+  }
+  item.options.forEach(opt=>{
+    const div = document.createElement("div");
+    div.className="option";
+    div.textContent=opt;
+    div.dataset.val = opt;
+    if(item.isMultiple){
+      div.onclick = ()=>toggleMulti(div,opt);
+    }else{
+      div.onclick = ()=>checkSingle(opt, div);
+    }
+    optEl.appendChild(div);
+  })
+}
+function showExplain(item){
+  if(item.explain){
+    expEl.textContent = `📖解釋：${item.explain}`;
+  }else{
+    expEl.textContent = "";
+  }
+}
+function toggleMulti(dom, value){
+  if(answered) return;
+  const idx = selectedMulti.indexOf(value);
+  if(idx > -1){
+    selectedMulti.splice(idx,1);
+    dom.classList.remove("selected");
+  }else{
+    selectedMulti.push(value);
+    dom.classList.add("selected");
+  }
+  submitBtn.disabled = selectedMulti.length === 0;
+}
+function checkSingle(userSel, dom){
+  if(answered) return;
+  answered=true;
+  const item = quizList[currentIdx];
+  const allOpts = document.querySelectorAll(".option");
+  allOpts.forEach(d=>d.classList.add("disabled"));
+  if(userSel === item.correct){
+    resEl.className="result correct-text";
+    resEl.textContent="正確🎉";
+    dom.classList.add("option-right");
+    rightNum++;
+  }else{
+    resEl.className="result wrong-text";
+    resEl.textContent="錯誤❌";
+    ansEl.textContent=`正確答案：${item.correct}`;
+    dom.classList.add("option-wrong");
+    allOpts.forEach(d=>{
+      if(d.textContent === item.correct){
+        d.classList.add("option-right");
+      }
+    })
+    wrongNum++;
+  }
+  showExplain(item);
+  nextBtn.disabled=false;
+}
+submitBtn.onclick = function(){
+  if(answered) return;
+  answered=true;
+  const item = quizList[currentIdx];
+  const allOpts = document.querySelectorAll(".option");
+  allOpts.forEach(d=>d.classList.add("disabled"));
+  const correctArr = item.correct;
+  const user = [...selectedMulti];
+  user.sort();
+  const ans = [...correctArr].sort();
+  const isOk = JSON.stringify(user) === JSON.stringify(ans);
+  if(isOk){
+    resEl.className="result correct-text";
+    resEl.textContent="正確🎉（全部選對）";
+    rightNum++;
+  }else{
+    resEl.className="result wrong-text";
+    resEl.textContent="錯誤❌（需要全部選對）";
+    ansEl.textContent=`正確答案：${correctArr.join("、")}`;
+    wrongNum++;
+  }
+  allOpts.forEach(d=>{
+    const v = d.dataset.val;
+    if(correctArr.includes(v)){
+      d.classList.add("option-right");
+    }
+    if(selectedMulti.includes(v) && !correctArr.includes(v)){
+      d.classList.add("option-wrong");
+    }
+  })
+  showExplain(item);
+  nextBtn.disabled=false;
+}
+nextBtn.onclick = ()=>{
+  if(currentIdx < quizList.length-1){
+    currentIdx++;
+    renderQuestion();
+  }else{
+    showScore();
+  }
+}
+function showScore(){
+  quizPage.style.display="none";
+  scorePage.style.display="block";
+  const total = quizList.length;
+  const score = Math.round((rightNum / total)*100);
+  totalCountEl.textContent = `總題目：${total} 題`;
+  rightCountEl.textContent = `✅答對：${rightNum} 題`;
+  wrongCountEl.textContent = `❌答錯：${wrongNum} 題`;
+  scoreTextEl.textContent = `得分：${score} / 100 分`;
+}
+restartBtn.onclick = resetQuiz;
+resetQuiz();
+</script>
+</body>
+</html>
